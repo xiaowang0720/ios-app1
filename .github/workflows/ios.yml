@@ -1,0 +1,26 @@
+name: Build iPhone app
+"on":
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Compile for iPhone
+        run: |
+          xcodebuild -project OfflineNotes.xcodeproj -target OfflineNotes \
+            -configuration Release -sdk iphoneos \
+            CONFIGURATION_BUILD_DIR="$RUNNER_TEMP/product" CODE_SIGNING_ALLOWED=NO build
+      - name: Package for signing
+        run: |
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$RUNNER_TEMP/product/OfflineNotes.app" "$RUNNER_TEMP/ipa/Payload/"
+          cd "$RUNNER_TEMP/ipa"
+          ditto -c -k --keepParent Payload OfflineNotes-unsigned.ipa
+      - uses: actions/upload-artifact@v7
+        with:
+          name: OfflineNotes-unsigned
+          path: ${{ runner.temp }}/ipa/OfflineNotes-unsigned.ipa
+          if-no-files-found: error
